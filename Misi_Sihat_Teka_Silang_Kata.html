@@ -1,0 +1,1088 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Misi Sihat: Teka Silang Kata</title>
+    <!-- Tailwind CSS untuk penggayaan yang pantas, moden dan responsif -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Gaya Khusus untuk Teka Silang Kata */
+        body {
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            background-color: #f0fdf4; /* Hijau muda */
+            background-image: radial-gradient(#bbf7d0 1px, transparent 1px);
+            background-size: 20px 20px;
+        }
+
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border: 2px solid #e2e8f0;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05);
+        }
+
+        /* Grid Teka Silang Kata */
+        .cw-grid-container {
+            display: inline-grid;
+            gap: 0;
+            padding: 10px;
+            background-color: #334155; /* Latar belakang petak hitam */
+            border-radius: 8px;
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .cw-cell {
+            width: 40px;
+            height: 40px;
+            position: relative;
+            background-color: white;
+            border: 1px solid #cbd5e1;
+        }
+
+        @media (max-width: 640px) {
+            .cw-cell { width: 32px; height: 32px; }
+        }
+
+        .cw-input {
+            width: 100%;
+            height: 100%;
+            text-align: center;
+            font-size: 1.25rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            border: none;
+            outline: none;
+            background: transparent;
+            color: #1e293b;
+            caret-color: #3b82f6;
+            cursor: pointer;
+        }
+
+        .cw-input:focus {
+            background-color: #eff6ff; /* Biru cair apabila fokus */
+        }
+
+        .cw-cell.black-cell {
+            background-color: #334155;
+            border-color: #334155;
+        }
+
+        /* Nombor pada petak */
+        .cw-number {
+            position: absolute;
+            top: 2px;
+            left: 3px;
+            font-size: 0.65rem;
+            font-weight: 600;
+            color: #64748b;
+            pointer-events: none;
+            z-index: 10;
+        }
+
+        /* Highlight untuk perkataan yang aktif */
+        .cw-cell.highlight { background-color: #fef08a; } /* Kuning */
+        
+        /* Status Semakan */
+        .cw-cell.correct .cw-input { color: #166534; font-weight: 900; }
+        .cw-cell.correct { background-color: #bbf7d0; } /* Hijau betul */
+        .cw-cell.wrong .cw-input { color: #991b1b; }
+        .cw-cell.wrong { background-color: #fecaca; } /* Merah salah */
+        .cw-cell.hinted { background-color: #bfdbfe; } /* Biru petunjuk */
+
+        /* Animasi */
+        @keyframes pop {
+            0% { transform: scale(0.95); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        .animate-pop { animation: pop 0.4s ease-out forwards; }
+
+        /* Butang Terapung */
+        .btn-game {
+            transition: all 0.2s;
+        }
+        .btn-game:active { transform: translateY(2px); }
+    </style>
+</head>
+<body class="min-h-screen text-slate-800">
+
+    <!-- HEADER UTAMA -->
+    <header class="bg-emerald-600 text-white p-4 shadow-md sticky top-0 z-50">
+        <div class="container mx-auto flex justify-between items-center">
+            <div>
+                <h1 class="text-2xl font-black tracking-wider flex items-center gap-2">
+                    <svg class="w-8 h-8 text-yellow-300" fill="currentColor" viewBox="0 0 20 20"><path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z"/><path fill-rule="evenodd" d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3zm-3 4a1 1 0 100 2h.01a1 1 0 100-2H7zm3 0a1 1 0 100 2h3a1 1 0 100-2h-3z" clip-rule="evenodd"/></svg>
+                    MISI SIHAT
+                </h1>
+                <p class="text-emerald-100 text-sm font-medium">Permainan Pendidikan Kesihatan Tahun 3</p>
+            </div>
+            <div id="header-status" class="hidden text-right">
+                <p class="text-sm text-emerald-100 uppercase tracking-widest font-semibold">Giliran:</p>
+                <p id="active-group-name" class="text-xl font-bold text-yellow-300">Kumpulan A</p>
+            </div>
+        </div>
+    </header>
+
+    <main class="container mx-auto p-4 flex-1 flex flex-col">
+
+        <!-- SKRIN 1: HOMEPAGE / TETAPAN GAME MASTER -->
+        <section id="screen-setup" class="animate-pop w-full max-w-3xl mx-auto mt-8 glass-panel rounded-2xl p-6 sm:p-10">
+            <div class="text-center mb-10">
+                <h2 class="text-3xl font-black text-slate-800 mb-2">TETAPAN GAME MASTER</h2>
+                <p class="text-slate-500">Sila tetapkan jumlah soalan dan pendaftaran kumpulan untuk bermula.</p>
+            </div>
+
+            <div class="grid md:grid-cols-2 gap-8">
+                <!-- Tetapan Soalan -->
+                <div class="bg-emerald-50 rounded-xl p-6 border border-emerald-200">
+                    <h3 class="font-bold text-lg text-emerald-800 mb-4 flex items-center gap-2">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                        Jumlah Soalan
+                    </h3>
+                    <select id="select-questions" class="w-full p-3 rounded-lg border-2 border-emerald-300 focus:border-emerald-500 focus:outline-none text-lg font-bold text-slate-700 bg-white">
+                        <option value="10">10 Soalan (Pendek)</option>
+                        <option value="20" selected>20 Soalan (Sederhana)</option>
+                        <option value="30">30 Soalan (Panjang)</option>
+                        <option value="40">40 Soalan (Pakar)</option>
+                        <option value="50">50 Soalan (Penuh)</option>
+                    </select>
+                    <p class="text-sm text-slate-500 mt-3 text-justify">
+                        *Soalan akan diagihkan secara seimbang dari 4 topik: Demam Denggi & Malaria, Permainan Tradisional, Makanan Sihat, dan Bahaya Merokok.
+                    </p>
+                </div>
+
+                <!-- Tetapan Kumpulan -->
+                <div class="bg-blue-50 rounded-xl p-6 border border-blue-200">
+                    <h3 class="font-bold text-lg text-blue-800 mb-4 flex items-center gap-2">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
+                        Senarai Kumpulan
+                    </h3>
+                    <ul id="group-list" class="space-y-2 mb-4">
+                        <!-- Senarai kumpulan akan dimuatkan di sini oleh JS -->
+                    </ul>
+                    <div class="flex gap-2">
+                        <input type="text" id="new-group-name" placeholder="Nama Kumpulan Baru" class="flex-1 p-2 border-2 border-blue-300 rounded-lg focus:border-blue-500 focus:outline-none" onkeypress="if(event.key === 'Enter') addGroup()">
+                        <button onclick="addGroup()" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg transition-colors">+</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mt-10 text-center">
+                <button onclick="startGame()" class="btn-game bg-yellow-400 hover:bg-yellow-500 text-slate-900 text-xl font-black py-4 px-12 rounded-full shadow-xl border-b-4 border-yellow-600">
+                    MULA PERMAINAN SECARA BERKUMPULAN
+                </button>
+                <p id="setup-error" class="text-red-500 font-bold mt-4 hidden">Sila daftarkan sekurang-kurangnya 2 kumpulan!</p>
+            </div>
+        </section>
+
+
+        <!-- SKRIN 2: PERMAINAN TEKA SILANG KATA -->
+        <section id="screen-game" class="hidden animate-pop w-full max-w-6xl mx-auto mt-4">
+            
+            <!-- Info Progress & Pusingan -->
+            <div class="flex flex-wrap justify-between items-center bg-white rounded-xl shadow-sm p-4 mb-4 border border-slate-200">
+                <div class="flex flex-col">
+                    <span class="text-sm font-bold text-slate-500">Pusingan Semasa</span>
+                    <span class="text-2xl font-black text-blue-600" id="round-info">1 / 4</span>
+                </div>
+                
+                <div class="flex-1 mx-4 max-w-lg hidden sm:block">
+                    <div class="w-full bg-slate-200 rounded-full h-4">
+                        <div id="progress-bar" class="bg-emerald-500 h-4 rounded-full transition-all duration-500" style="width: 25%"></div>
+                    </div>
+                    <div class="text-center text-xs font-bold text-slate-500 mt-1">Kemajuan Keseluruhan</div>
+                </div>
+
+                <div class="flex flex-col text-right">
+                    <span class="text-sm font-bold text-slate-500">Markah Kumpulan Ini</span>
+                    <span class="text-2xl font-black text-emerald-600" id="current-score-display">0</span>
+                </div>
+            </div>
+
+            <!-- Grid & Petunjuk -->
+            <div class="grid lg:grid-cols-3 gap-6">
+                <!-- Bahagian Petunjuk (Kiri) -->
+                <div class="lg:col-span-1 flex flex-col gap-4">
+                    <div class="glass-panel p-4 rounded-xl h-[450px] overflow-y-auto">
+                        <h3 class="text-lg font-black text-slate-800 mb-3 border-b-2 border-slate-200 pb-2">MENDATAR</h3>
+                        <ul id="clues-horizontal" class="space-y-3">
+                            <!-- Petunjuk Mendatar -->
+                        </ul>
+
+                        <h3 class="text-lg font-black text-slate-800 mt-6 mb-3 border-b-2 border-slate-200 pb-2">MENEGAK</h3>
+                        <ul id="clues-vertical" class="space-y-3">
+                            <!-- Petunjuk Menegak -->
+                        </ul>
+                    </div>
+                    
+                    <!-- Papan Markah Mini -->
+                    <div class="glass-panel p-4 rounded-xl hidden lg:block">
+                        <h4 class="font-bold text-sm text-slate-500 mb-2 uppercase">Kedudukan Semasa</h4>
+                        <div id="mini-leaderboard" class="space-y-2">
+                            <!-- Diisi oleh JS -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Bahagian Grid & Kawalan (Kanan) -->
+                <div class="lg:col-span-2 flex flex-col gap-4">
+                    <!-- Area Grid -->
+                    <div class="glass-panel p-4 rounded-xl flex items-center justify-center min-h-[450px] overflow-auto">
+                        <div id="crossword-board" class="cw-grid-container">
+                            <!-- Grid dijana secara automatik di sini -->
+                        </div>
+                    </div>
+
+                    <!-- Butang Tindakan -->
+                    <div class="glass-panel p-4 rounded-xl grid grid-cols-2 md:grid-cols-4 gap-3">
+                        <button onclick="checkAnswersTemp()" class="btn-game bg-sky-500 hover:bg-sky-600 text-white font-bold py-3 px-2 rounded-lg text-sm shadow-md">
+                            SEMAK JAWAPAN
+                        </button>
+                        <button onclick="revealHint()" class="btn-game bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-3 px-2 rounded-lg text-sm shadow-md" title="Dedahkan 1 huruf (Tolak 2 mata)">
+                            PETUNJUK (-2 MATA)
+                        </button>
+                        <button onclick="clearCurrentWord()" class="btn-game bg-slate-500 hover:bg-slate-600 text-white font-bold py-3 px-2 rounded-lg text-sm shadow-md">
+                            KOSONGKAN
+                        </button>
+                        <button onclick="submitTurn()" class="btn-game bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 px-2 rounded-lg text-sm shadow-md border-b-4 border-emerald-800">
+                            HANTAR (TAMAT GILIRAN)
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+
+        <!-- SKRIN 3: LEADERBOARD TAMAT PERMAINAN -->
+        <section id="screen-leaderboard" class="hidden animate-pop w-full max-w-4xl mx-auto mt-8 glass-panel rounded-2xl p-6 sm:p-10 text-center">
+            
+            <div class="mb-8">
+                <span class="inline-block animate-bounce text-5xl mb-4">🏆</span>
+                <h2 class="text-4xl font-black text-slate-800 mb-2">TAHNIAH!</h2>
+                <h3 class="text-2xl font-bold text-emerald-600">MISI SIHAT SELESAI!</h3>
+                <p class="text-slate-500 mt-2">Keputusan akhir pertarungan bijak pandai kesihatan.</p>
+            </div>
+
+            <div class="bg-white rounded-xl shadow-inner border border-slate-200 overflow-hidden mb-8">
+                <table class="w-full text-left">
+                    <thead class="bg-slate-100 text-slate-600 font-bold uppercase text-sm">
+                        <tr>
+                            <th class="py-4 px-4 text-center">Kedudukan</th>
+                            <th class="py-4 px-4">Kumpulan</th>
+                            <th class="py-4 px-4 text-center">Jawapan Betul</th>
+                            <th class="py-4 px-4 text-center">Markah</th>
+                        </tr>
+                    </thead>
+                    <tbody id="final-leaderboard-body" class="divide-y divide-slate-100">
+                        <!-- Baris dijana oleh JS -->
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="flex flex-col sm:flex-row justify-center gap-4">
+                <button onclick="returnToHome()" class="btn-game bg-slate-200 hover:bg-slate-300 text-slate-800 font-bold py-3 px-8 rounded-full shadow-md">
+                    KEMBALI KE HOMEPAGE
+                </button>
+                <button onclick="playAgain()" class="btn-game bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-3 px-8 rounded-full shadow-md border-b-4 border-emerald-700">
+                    MAIN LAGI (SET SEMULA)
+                </button>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Modal Maklum Balas -->
+    <div id="feedback-modal" class="fixed inset-0 bg-black bg-opacity-50 z-[100] hidden flex items-center justify-center backdrop-blur-sm transition-opacity duration-300">
+        <div class="bg-white rounded-2xl p-8 max-w-sm w-full text-center transform scale-95 transition-transform duration-300" id="feedback-modal-content">
+            <div id="feedback-icon" class="text-6xl mb-4">🌟</div>
+            <h3 id="feedback-title" class="text-2xl font-black mb-2 text-slate-800">Hebat!</h3>
+            <p id="feedback-message" class="text-slate-600 mb-6 font-medium">Kumpulan A mendapat 50 mata!</p>
+            <button onclick="closeFeedbackModal()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-xl">
+                TERUSKAN
+            </button>
+        </div>
+    </div>
+
+    <!-- LOGIK JAVASCRIPT -->
+    <script>
+        // ---------------------------------------------------------
+        // 1. BANK SOALAN (Min 50 soalan diagihkan kepada 4 topik)
+        // ---------------------------------------------------------
+        const questionBank = [
+            // TOPIK A: DEMAM DENGGI & MALARIA (13 Soalan)
+            { answer: "DENGGI", clue: "Penyakit berbahaya bawaan nyamuk Aedes", topic: "A" },
+            { answer: "MALARIA", clue: "Penyakit demam gigil bawaan nyamuk Anopheles", topic: "A" },
+            { answer: "NYAMUK", clue: "Serangga kecil yang suka menghisap darah", topic: "A" },
+            { answer: "AEDES", clue: "Jenis nyamuk yang menyebarkan virus denggi", topic: "A" },
+            { answer: "GIGITAN", clue: "Cara nyamuk memindahkan penyakit ke dalam badan kita", topic: "A" },
+            { answer: "JENTIK", clue: "Anak nyamuk yang hidup di dalam air (jentik-...)", topic: "A" },
+            { answer: "KELAMBU", clue: "Jaring pelindung tempat tidur untuk elak gigitan nyamuk", topic: "A" },
+            { answer: "TAKUNGAN", clue: "Tempat air berkumpul dan nyamuk suka membiak", topic: "A" },
+            { answer: "DEMAM", clue: "Tanda utama badan panas jika dijangkiti denggi", topic: "A" },
+            { answer: "AIR", clue: "Nyamuk Aedes suka bertelur di dalam _____ jernih", topic: "A" },
+            { answer: "TAYAR", clue: "Benda bulat pada kereta, boleh bertakung air hujan", topic: "A" },
+            { answer: "BERSIH", clue: "Amalan penjagaan persekitaran untuk elak nyamuk", topic: "A" },
+            { answer: "RACUN", clue: "Bahan semburan (fogging) untuk membunuh nyamuk", topic: "A" },
+
+            // TOPIK B: PERMAINAN TRADISIONAL (13 Soalan)
+            { answer: "CONGKAK", clue: "Permainan guna papan berlubang kayu dan guli/biji", topic: "B" },
+            { answer: "WAU", clue: "Layang-layang besar tradisional terkenal di Kelantan", topic: "B" },
+            { answer: "GULI", clue: "Bebola kaca kecil berwarna-warni untuk dimainkan", topic: "B" },
+            { answer: "BATU", clue: "Permainan seremban menggunakan objek kecil (Batu ...)", topic: "B" },
+            { answer: "SEPAK", clue: "Perbuatan menendang raga menggunakan kaki", topic: "B" },
+            { answer: "TAKRAW", clue: "Bola anyaman rotan atau plastik", topic: "B" },
+            { answer: "GALAH", clue: "Permainan halang-halang pasukan (Galah panjang)", topic: "B" },
+            { answer: "SELIPAR", clue: "Permainan baling alas kaki dan susun tiga", topic: "B" },
+            { answer: "KETINTING", clue: "Lompat menggunakan satu kaki pada petak dilukis", topic: "B" },
+            { answer: "GASING", clue: "Objek kayu berpusing laju yang dilempar dengan tali", topic: "B" },
+            { answer: "TARIK", clue: "Permainan menarik upih pinang (Tarik ...)", topic: "B" },
+            { answer: "SOROK", clue: "Permainan sembunyi-sembunyi dan cari", topic: "B" },
+            { answer: "GETAH", clue: "Lompat menggunakan tali yang disambung dari gelang getah", topic: "B" },
+
+            // TOPIK C: MAKANAN SIHAT (13 Soalan)
+            { answer: "SAYUR", clue: "Makanan sihat berwarna hijau sumber vitamin tinggi", topic: "C" },
+            { answer: "BUAH", clue: "Epal, oren, dan betik adalah contoh _____ -buahan", topic: "C" },
+            { answer: "SUSU", clue: "Minuman putih berkhasiat untuk kuatkan tulang", topic: "C" },
+            { answer: "IKAN", clue: "Hidupan laut yang merupakan sumber protein yang baik", topic: "C" },
+            { answer: "VITAMIN", clue: "Zat penting dari buah-buahan elak penyakit", topic: "C" },
+            { answer: "PROTEIN", clue: "Zat pembina otot badan yang terdapat dalam ayam", topic: "C" },
+            { answer: "SIHAT", clue: "Keadaan tubuh badan yang cergas dan tidak sakit", topic: "C" },
+            { answer: "SEIMBANG", clue: "Pemakanan yang mengandungi semua nutrien mencukupi", topic: "C" },
+            { answer: "BIJIRIN", clue: "Kumpulan karbohidrat seperti gandum, oat dan jagung", topic: "C" },
+            { answer: "GULA", clue: "Bahan manis yang perlu dikurangkan elak kencing manis", topic: "C" },
+            { answer: "GARAM", clue: "Bahan masin yang perlu dikurangkan elak darah tinggi", topic: "C" },
+            { answer: "LEMAK", clue: "Kurangkan makanan bergoreng berminyak yang kaya dengan ___", topic: "C" },
+            { answer: "KOSONG", clue: "Air putih yang paling baik diminum setiap hari (Air ...)", topic: "C" },
+
+            // TOPIK D: BAHAYA MEROKOK (13 Soalan)
+            { answer: "ROKOK", clue: "Silinder tembakau yang dibakar dan dihisap, sangat bahaya", topic: "D" },
+            { answer: "ASAP", clue: "Gas kotor dan bahaya yang keluar dari rokok", topic: "D" },
+            { answer: "PARU", clue: "Organ pernafasan yang akan rosak hitam akibat rokok (...-paru)", topic: "D" },
+            { answer: "NIKOTIN", clue: "Bahan racun dalam rokok yang menyebabkan ketagihan", topic: "D" },
+            { answer: "BATUK", clue: "Sakit tekak dan pernafasan akibat selalu merokok", topic: "D" },
+            { answer: "BAHAYA", clue: "Risiko besar merokok pada kesihatan jantung kita", topic: "D" },
+            { answer: "KETAGIH", clue: "Rasa susah nak berhenti merokok walaupun tahu bahaya", topic: "D" },
+            { answer: "NAFAS", clue: "Menjadi sesak dan pendek jika kita menghisap rokok", topic: "D" },
+            { answer: "JAUHI", clue: "Tindakan yang mesti kita buat terhadap rokok (Jauhi...)", topic: "D" },
+            { answer: "BUSUK", clue: "Bau nafas dan mulut orang yang kuat merokok", topic: "D" },
+            { answer: "GIGI", clue: "Bahagian dalam mulut yang menjadi kuning kotor akibat rokok", topic: "D" },
+            { answer: "KANSER", clue: "Penyakit maut yang berpunca dari bahan kimia rokok", topic: "D" },
+            { answer: "BAZIR", clue: "Amalan membuang duit beli benda tidak berfaedah seperti rokok", topic: "D" }
+        ];
+
+        // ---------------------------------------------------------
+        // 2. STATE PENGURUSAN PERMAINAN
+        // ---------------------------------------------------------
+        let groups = [
+            { id: 1, name: "Kumpulan A", score: 0, correctAnswers: 0 },
+            { id: 2, name: "Kumpulan B", score: 0, correctAnswers: 0 }
+        ];
+        
+        let gameState = {
+            totalQuestionsSetting: 20,
+            selectedQuestions: [],
+            rounds: [], // Array of word arrays (5 words per round)
+            currentRoundIndex: 0,
+            currentTurnGroupIndex: 0, // Giliran kumpulan
+            gridData: [], // Layout data of current crossword
+            activeWordId: null,
+            activeDirection: null,
+            wordStates: {} // To track points per word in current round
+        };
+
+        // ---------------------------------------------------------
+        // 3. FUNGSI HOMEPAGE & TETAPAN KUMPULAN
+        // ---------------------------------------------------------
+        
+        function renderGroupList() {
+            const list = document.getElementById("group-list");
+            list.innerHTML = "";
+            groups.forEach((g, index) => {
+                const li = document.createElement("li");
+                li.className = "flex justify-between items-center bg-white p-2 rounded border border-blue-100 shadow-sm";
+                li.innerHTML = `
+                    <span class="font-bold text-slate-700">${g.name}</span>
+                    <button onclick="removeGroup(${g.id})" class="text-red-500 hover:bg-red-100 rounded-full w-6 h-6 flex items-center justify-center font-bold" title="Padam">&times;</button>
+                `;
+                list.appendChild(li);
+            });
+        }
+
+        function addGroup() {
+            const input = document.getElementById("new-group-name");
+            const name = input.value.trim();
+            if (name) {
+                const newId = groups.length > 0 ? Math.max(...groups.map(g => g.id)) + 1 : 1;
+                groups.push({ id: newId, name: name, score: 0, correctAnswers: 0 });
+                input.value = "";
+                renderGroupList();
+                document.getElementById("setup-error").classList.add("hidden");
+            }
+        }
+
+        function removeGroup(id) {
+            groups = groups.filter(g => g.id !== id);
+            renderGroupList();
+        }
+
+        // Initialize UI
+        renderGroupList();
+
+        // ---------------------------------------------------------
+        // 4. MEMULAKAN PERMAINAN & PEMILIHAN SOALAN
+        // ---------------------------------------------------------
+        
+        function startGame() {
+            if (groups.length < 2) {
+                document.getElementById("setup-error").classList.remove("hidden");
+                return;
+            }
+
+            // Reset scores
+            groups.forEach(g => { g.score = 0; g.correctAnswers = 0; });
+            
+            // Get setting
+            const selectEl = document.getElementById("select-questions");
+            gameState.totalQuestionsSetting = parseInt(selectEl.value);
+            
+            // Select questions balanced
+            gameState.selectedQuestions = getBalancedQuestions(gameState.totalQuestionsSetting);
+            
+            // Divide into rounds (Max 5 words per round to fit screen nicely)
+            gameState.rounds = [];
+            const wordsPerRound = 5;
+            for (let i = 0; i < gameState.selectedQuestions.length; i += wordsPerRound) {
+                gameState.rounds.push(gameState.selectedQuestions.slice(i, i + wordsPerRound));
+            }
+
+            gameState.currentRoundIndex = 0;
+            gameState.currentTurnGroupIndex = 0;
+
+            // Switch Screen
+            document.getElementById("screen-setup").classList.add("hidden");
+            document.getElementById("screen-leaderboard").classList.add("hidden");
+            document.getElementById("screen-game").classList.remove("hidden");
+            document.getElementById("header-status").classList.remove("hidden");
+
+            startRound();
+        }
+
+        function getBalancedQuestions(total) {
+            // Asingkan by topic
+            const topics = { "A": [], "B": [], "C": [], "D": [] };
+            questionBank.forEach(q => topics[q.topic].push({...q}));
+            
+            // Shuffle each topic
+            Object.keys(topics).forEach(k => {
+                topics[k] = topics[k].sort(() => Math.random() - 0.5);
+            });
+
+            let selected = [];
+            let counts = { "A": 0, "B": 0, "C": 0, "D": 0 };
+            
+            // Agihkan sama rata
+            let keys = ["A", "B", "C", "D"];
+            let idx = 0;
+            while (selected.length < total) {
+                let key = keys[idx % 4];
+                if (topics[key].length > counts[key]) {
+                    selected.push(topics[key][counts[key]]);
+                    counts[key]++;
+                }
+                idx++;
+            }
+            
+            // Shuffle final selected
+            return selected.sort(() => Math.random() - 0.5);
+        }
+
+        // ---------------------------------------------------------
+        // 5. ALGORITMA PENJANAAN TEKA SILANG KATA
+        // ---------------------------------------------------------
+        
+        function generateCrosswordGrid(words) {
+            const GRID_SIZE = 40; // Virtual grid besar untuk pastikan ruang cukup
+            let grid = Array(GRID_SIZE).fill(null).map(() => Array(GRID_SIZE).fill(' '));
+            let placements = []; // { id, word, r, c, dir, answer, clue }
+
+            function isValidPlacement(wordStr, r, c, dir) {
+                if (dir === 'H') {
+                    if (c + wordStr.length > GRID_SIZE) return false;
+                    // Semak sebelum dan selepas perkataan
+                    if (c > 0 && grid[r][c-1] !== ' ') return false;
+                    if (c + wordStr.length < GRID_SIZE && grid[r][c+wordStr.length] !== ' ') return false;
+                } else {
+                    if (r + wordStr.length > GRID_SIZE) return false;
+                    if (r > 0 && grid[r-1][c] !== ' ') return false;
+                    if (r + wordStr.length < GRID_SIZE && grid[r+wordStr.length][c] !== ' ') return false;
+                }
+
+                for (let i = 0; i < wordStr.length; i++) {
+                    let rr = dir === 'V' ? r + i : r;
+                    let cc = dir === 'H' ? c + i : c;
+                    
+                    let cell = grid[rr][cc];
+                    if (cell !== ' ' && cell !== wordStr[i]) return false; // Pelanggaran huruf
+                    
+                    if (cell === ' ') {
+                        // Jika petak kosong, pastikan jiran tepi tidak menyentuh perkataan lain (mengelakkan percantuman haram)
+                        if (dir === 'H') {
+                            if (rr > 0 && grid[rr-1][cc] !== ' ') return false;
+                            if (rr < GRID_SIZE-1 && grid[rr+1][cc] !== ' ') return false;
+                        } else {
+                            if (cc > 0 && grid[rr][cc-1] !== ' ') return false;
+                            if (cc < GRID_SIZE-1 && grid[rr][cc+1] !== ' ') return false;
+                        }
+                    }
+                }
+                return true;
+            }
+
+            // Letakkan perkataan pertama di tengah
+            let firstWord = words[0];
+            let startR = Math.floor(GRID_SIZE / 2);
+            let startC = Math.floor(GRID_SIZE / 2) - Math.floor(firstWord.answer.length / 2);
+            
+            for(let i=0; i<firstWord.answer.length; i++) {
+                grid[startR][startC+i] = firstWord.answer[i];
+            }
+            placements.push({ id: 1, ...firstWord, r: startR, c: startC, dir: 'H' });
+
+            // Cuba letak perkataan seterusnya
+            for(let i=1; i<words.length; i++) {
+                let w = words[i];
+                let options = [];
+
+                // Cari persilangan dengan perkataan yang dah diletakkan
+                for(let p of placements) {
+                    for(let j=0; j<w.answer.length; j++) {
+                        for(let k=0; k<p.answer.length; k++) {
+                            if(w.answer[j] === p.answer[k]) {
+                                let dir = p.dir === 'H' ? 'V' : 'H';
+                                let r, c;
+                                if (dir === 'V') {
+                                    r = p.r - j;
+                                    c = p.c + k;
+                                } else {
+                                    r = p.r + k;
+                                    c = p.c - j;
+                                }
+                                if(r >= 0 && c >= 0 && isValidPlacement(w.answer, r, c, dir)) {
+                                    options.push({r, c, dir});
+                                }
+                            }
+                        }
+                    }
+                }
+
+                if(options.length > 0) {
+                    // Pilih yang paling dekat dengan tengah (agar padat)
+                    options.sort((a,b) => {
+                        let d1 = Math.abs(a.r - GRID_SIZE/2) + Math.abs(a.c - GRID_SIZE/2);
+                        let d2 = Math.abs(b.r - GRID_SIZE/2) + Math.abs(b.c - GRID_SIZE/2);
+                        return d1 - d2;
+                    });
+                    let best = options[0];
+                    for(let j=0; j<w.answer.length; j++) {
+                        let rr = best.dir === 'V' ? best.r + j : best.r;
+                        let cc = best.dir === 'H' ? best.c + j : best.c;
+                        grid[rr][cc] = w.answer[j];
+                    }
+                    placements.push({ id: i+1, ...w, r: best.r, c: best.c, dir: best.dir });
+                } else {
+                    // Fallback: Letakkan di bawah tanpa bersilang
+                    let maxR = 0;
+                    for(let rr=0; rr<GRID_SIZE; rr++) {
+                        for(let cc=0; cc<GRID_SIZE; cc++) {
+                            if(grid[rr][cc] !== ' ') maxR = Math.max(maxR, rr);
+                        }
+                    }
+                    let fallR = maxR + 2;
+                    let fallC = Math.floor(GRID_SIZE / 2) - Math.floor(w.answer.length / 2);
+                    if(fallR < GRID_SIZE && isValidPlacement(w.answer, fallR, fallC, 'H')) {
+                        for(let j=0; j<w.answer.length; j++) grid[fallR][fallC+j] = w.answer[j];
+                        placements.push({ id: i+1, ...w, r: fallR, c: fallC, dir: 'H' });
+                    } else {
+                        // Ekstrim fallback (jarang berlaku pada petak kecil, tapi elakkan break)
+                        fallC = 2;
+                        if(fallR < GRID_SIZE) {
+                            for(let j=0; j<w.answer.length; j++) grid[fallR][fallC+j] = w.answer[j];
+                            placements.push({ id: i+1, ...w, r: fallR, c: fallC, dir: 'H' });
+                        }
+                    }
+                }
+            }
+
+            // Normalisasi petak (buang ruang kosong tidak perlu)
+            let minR = GRID_SIZE, maxR = 0, minC = GRID_SIZE, maxC = 0;
+            placements.forEach(p => {
+                minR = Math.min(minR, p.r);
+                maxR = Math.max(maxR, p.dir==='V' ? p.r + p.answer.length - 1 : p.r);
+                minC = Math.min(minC, p.c);
+                maxC = Math.max(maxC, p.dir==='H' ? p.c + p.answer.length - 1 : p.c);
+            });
+
+            // Adjust coordinates based on cropped grid
+            let finalPlacements = placements.map(p => ({
+                ...p,
+                r: p.r - minR,
+                c: p.c - minC
+            }));
+
+            return {
+                rows: (maxR - minR) + 1,
+                cols: (maxC - minC) + 1,
+                words: finalPlacements
+            };
+        }
+
+
+        // ---------------------------------------------------------
+        // 6. RENDER PUSINGAN (UI)
+        // ---------------------------------------------------------
+        
+        function startRound() {
+            let words = gameState.rounds[gameState.currentRoundIndex];
+            
+            // Update HUD
+            let currentGroup = groups[gameState.currentTurnGroupIndex];
+            document.getElementById("active-group-name").innerText = currentGroup.name;
+            document.getElementById("round-info").innerText = `${gameState.currentRoundIndex + 1} / ${gameState.rounds.length}`;
+            document.getElementById("current-score-display").innerText = currentGroup.score;
+            
+            let progress = (gameState.currentRoundIndex / gameState.rounds.length) * 100;
+            document.getElementById("progress-bar").style.width = `${progress}%`;
+
+            updateMiniLeaderboard();
+
+            // Generate Board Layout
+            let layout = generateCrosswordGrid(words);
+            gameState.gridData = layout;
+            
+            // Set word states for scoring
+            gameState.wordStates = {};
+            layout.words.forEach(w => {
+                gameState.wordStates[w.id] = { maxPoints: 10, answeredCorrectly: false };
+            });
+
+            renderGrid(layout);
+            renderClues(layout);
+            
+            // Reset focus
+            gameState.activeWordId = null;
+            gameState.activeDirection = null;
+        }
+
+        function renderGrid(layout) {
+            const container = document.getElementById("crossword-board");
+            container.innerHTML = "";
+            
+            // Set CSS Grid based on rows/cols
+            container.style.gridTemplateRows = `repeat(${layout.rows}, 40px)`;
+            container.style.gridTemplateColumns = `repeat(${layout.cols}, 40px)`;
+            
+            // Create a 2D mapping mapping (r,c) to cells needed
+            let cellMap = Array(layout.rows).fill(null).map(() => Array(layout.cols).fill(null));
+            
+            layout.words.forEach(w => {
+                for(let i=0; i<w.answer.length; i++) {
+                    let r = w.dir === 'V' ? w.r + i : w.r;
+                    let c = w.dir === 'H' ? w.c + i : w.c;
+                    
+                    if(!cellMap[r][c]) {
+                        cellMap[r][c] = { words: [], correctChar: w.answer[i], isStart: false, labels: [] };
+                    }
+                    cellMap[r][c].words.push({ id: w.id, dir: w.dir, idx: i });
+                    if(i === 0) {
+                        cellMap[r][c].isStart = true;
+                        cellMap[r][c].labels.push(w.id);
+                    }
+                }
+            });
+
+            // Render to DOM
+            for(let r=0; r<layout.rows; r++) {
+                for(let c=0; c<layout.cols; c++) {
+                    let cellData = cellMap[r][c];
+                    let cellDiv = document.createElement("div");
+                    
+                    if(cellData) {
+                        cellDiv.className = "cw-cell";
+                        
+                        // Nombor jika permulaan perkataan
+                        if(cellData.isStart) {
+                            let numDiv = document.createElement("div");
+                            numDiv.className = "cw-number";
+                            numDiv.innerText = cellData.labels.join("/");
+                            cellDiv.appendChild(numDiv);
+                        }
+
+                        // Input field
+                        let input = document.createElement("input");
+                        input.type = "text";
+                        input.maxLength = 1;
+                        input.className = "cw-input";
+                        input.dataset.r = r;
+                        input.dataset.c = c;
+                        input.dataset.char = cellData.correctChar; // for checking
+                        input.dataset.words = JSON.stringify(cellData.words); // ex: [{"id":1,"dir":"H","idx":0}]
+                        
+                        input.addEventListener("focus", handleCellFocus);
+                        input.addEventListener("keydown", handleCellKeydown);
+                        input.addEventListener("input", handleCellInput);
+
+                        cellDiv.appendChild(input);
+                    } else {
+                        // Petak Hitam
+                        cellDiv.className = "cw-cell black-cell";
+                    }
+                    container.appendChild(cellDiv);
+                }
+            }
+        }
+
+        function renderClues(layout) {
+            let ulH = document.getElementById("clues-horizontal");
+            let ulV = document.getElementById("clues-vertical");
+            ulH.innerHTML = "";
+            ulV.innerHTML = "";
+
+            // Urutkan mengikut ID (nombor soalan)
+            let sorted = [...layout.words].sort((a,b) => a.id - b.id);
+
+            sorted.forEach(w => {
+                let li = document.createElement("li");
+                li.className = "p-2 rounded-lg bg-slate-50 border border-slate-200 cursor-pointer hover:bg-sky-50 transition-colors text-sm clue-item";
+                li.id = `clue-${w.id}`;
+                li.innerHTML = `<strong>${w.id}.</strong> ${w.clue} <span class="text-xs text-slate-400">(${w.answer.length})</span>`;
+                li.onclick = () => activateWord(w.id, w.dir);
+                
+                if(w.dir === 'H') ulH.appendChild(li);
+                else ulV.appendChild(li);
+            });
+        }
+
+        function updateMiniLeaderboard() {
+            let sorted = [...groups].sort((a,b) => b.score - a.score);
+            let container = document.getElementById("mini-leaderboard");
+            container.innerHTML = "";
+            sorted.forEach((g, i) => {
+                let div = document.createElement("div");
+                div.className = `flex justify-between p-2 rounded text-sm ${g.id === groups[gameState.currentTurnGroupIndex].id ? 'bg-yellow-100 border border-yellow-300 font-bold' : 'bg-slate-50'}`;
+                div.innerHTML = `<span>${i+1}. ${g.name}</span><span class="text-emerald-700 font-bold">${g.score}</span>`;
+                container.appendChild(div);
+            });
+        }
+
+        // ---------------------------------------------------------
+        // 7. INTERAKSI INPUT & PENGEMUDIAN (KEYBOARD)
+        // ---------------------------------------------------------
+        
+        function activateWord(id, dir) {
+            gameState.activeWordId = id;
+            gameState.activeDirection = dir;
+
+            // Highlight clue
+            document.querySelectorAll('.clue-item').forEach(el => el.classList.remove('bg-yellow-100', 'border-yellow-400'));
+            const clueEl = document.getElementById(`clue-${id}`);
+            if(clueEl) clueEl.classList.add('bg-yellow-100', 'border-yellow-400');
+
+            // Highlight grid cells
+            document.querySelectorAll('.cw-cell').forEach(el => el.classList.remove('highlight'));
+            const inputs = document.querySelectorAll('.cw-input');
+            let firstInput = null;
+            
+            inputs.forEach(input => {
+                let wordsData = JSON.parse(input.dataset.words);
+                let isPartOfWord = wordsData.some(w => w.id === id);
+                if(isPartOfWord) {
+                    input.parentElement.classList.add('highlight');
+                    // Find start (idx == 0) to focus
+                    if(!firstInput || wordsData.find(w => w.id === id).idx === 0) {
+                        firstInput = input;
+                    }
+                }
+            });
+
+            if(firstInput) firstInput.focus();
+        }
+
+        function handleCellFocus(e) {
+            // Auto detect active word if clicked directly on grid
+            let wordsData = JSON.parse(e.target.dataset.words);
+            if(wordsData.length === 1) {
+                activateWord(wordsData[0].id, wordsData[0].dir);
+            } else if (wordsData.length > 1) {
+                // If intersection, prefer current active direction if matches, else default to first
+                let matched = wordsData.find(w => w.id === gameState.activeWordId);
+                if(!matched) {
+                    activateWord(wordsData[0].id, wordsData[0].dir);
+                }
+            }
+            e.target.select();
+        }
+
+        function handleCellInput(e) {
+            e.target.value = e.target.value.toUpperCase();
+            e.target.parentElement.classList.remove('wrong', 'correct'); // remove status when edited
+            
+            if(e.target.value !== '') {
+                // Move to next cell automatically
+                let wordsData = JSON.parse(e.target.dataset.words);
+                let currentWord = wordsData.find(w => w.id === gameState.activeWordId);
+                if(currentWord) {
+                    let nextIdx = currentWord.idx + 1;
+                    let nextInput = Array.from(document.querySelectorAll('.cw-input')).find(input => {
+                        let wd = JSON.parse(input.dataset.words);
+                        return wd.some(w => w.id === gameState.activeWordId && w.idx === nextIdx);
+                    });
+                    if(nextInput) nextInput.focus();
+                }
+            }
+        }
+
+        function handleCellKeydown(e) {
+            let r = parseInt(e.target.dataset.r);
+            let c = parseInt(e.target.dataset.c);
+            let wordsData = JSON.parse(e.target.dataset.words);
+            let currentWord = wordsData.find(w => w.id === gameState.activeWordId);
+
+            if(!currentWord) return;
+
+            if (e.key === "Backspace" && e.target.value === "") {
+                // Move back
+                e.preventDefault();
+                let prevIdx = currentWord.idx - 1;
+                let prevInput = Array.from(document.querySelectorAll('.cw-input')).find(input => {
+                    let wd = JSON.parse(input.dataset.words);
+                    return wd.some(w => w.id === gameState.activeWordId && w.idx === prevIdx);
+                });
+                if(prevInput) {
+                    prevInput.focus();
+                    prevInput.value = "";
+                    prevInput.parentElement.classList.remove('wrong', 'correct', 'hinted');
+                }
+            } else if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(e.key)) {
+                e.preventDefault();
+                let nextR = r, nextC = c;
+                if(e.key === "ArrowUp") nextR--;
+                if(e.key === "ArrowDown") nextR++;
+                if(e.key === "ArrowLeft") nextC--;
+                if(e.key === "ArrowRight") nextC++;
+
+                let nextInput = document.querySelector(`.cw-input[data-r="${nextR}"][data-c="${nextC}"]`);
+                if(nextInput) nextInput.focus();
+            }
+        }
+
+        // ---------------------------------------------------------
+        // 8. TINDAKAN BUTANG
+        // ---------------------------------------------------------
+
+        function checkAnswersTemp() {
+            // Hanya semak secara visual, belum muktamadkan markah
+            let inputs = document.querySelectorAll('.cw-input');
+            inputs.forEach(input => {
+                if(input.value !== "") {
+                    if(input.value === input.dataset.char) {
+                        input.parentElement.classList.add('correct');
+                        input.parentElement.classList.remove('wrong');
+                    } else {
+                        input.parentElement.classList.add('wrong');
+                        input.parentElement.classList.remove('correct');
+                    }
+                }
+            });
+        }
+
+        function clearCurrentWord() {
+            if(!gameState.activeWordId) return;
+            let inputs = document.querySelectorAll('.cw-input');
+            inputs.forEach(input => {
+                let wd = JSON.parse(input.dataset.words);
+                if(wd.some(w => w.id === gameState.activeWordId)) {
+                    input.value = "";
+                    input.parentElement.classList.remove('wrong', 'correct', 'hinted');
+                }
+            });
+            // Letakkan fokus ke permulaan
+            let firstInput = Array.from(inputs).find(input => {
+                let wd = JSON.parse(input.dataset.words);
+                return wd.some(w => w.id === gameState.activeWordId && w.idx === 0);
+            });
+            if(firstInput) firstInput.focus();
+        }
+
+        function revealHint() {
+            // Beri petunjuk pada petak yang sedang aktif
+            let activeInput = document.activeElement;
+            if(!activeInput || !activeInput.classList.contains('cw-input')) {
+                showModal("Pilih Petak", "Sila klik pada petak grid yang anda perlukan petunjuk.", "😕");
+                return;
+            }
+
+            if(activeInput.value === activeInput.dataset.char) return; // Dah betul
+
+            activeInput.value = activeInput.dataset.char;
+            activeInput.parentElement.classList.add('hinted');
+            activeInput.parentElement.classList.remove('wrong');
+
+            // Potong 2 mata dari perkataan yang berkaitan
+            let wd = JSON.parse(activeInput.dataset.words);
+            wd.forEach(w => {
+                let state = gameState.wordStates[w.id];
+                if(state && state.maxPoints > 0) {
+                    state.maxPoints = Math.max(0, state.maxPoints - 2);
+                }
+            });
+            
+            // trigger input logic to move next
+            let ev = new Event('input');
+            activeInput.dispatchEvent(ev);
+        }
+
+        // ---------------------------------------------------------
+        // 9. PENGHANTARAN GILIRAN (SUBMIT & SCORE)
+        // ---------------------------------------------------------
+
+        function submitTurn() {
+            let layout = gameState.gridData;
+            let inputs = document.querySelectorAll('.cw-input');
+            
+            let roundScore = 0;
+            let correctWordsCount = 0;
+
+            // Kumpul perkataan yang dimasukkan oleh murid
+            layout.words.forEach(w => {
+                let isWordCorrect = true;
+                // Semak semua petak untuk perkataan ini
+                inputs.forEach(input => {
+                    let wd = JSON.parse(input.dataset.words);
+                    if(wd.some(wordInfo => wordInfo.id === w.id)) {
+                        if(input.value !== input.dataset.char) {
+                            isWordCorrect = false;
+                        }
+                    }
+                });
+
+                if(isWordCorrect) {
+                    let pts = gameState.wordStates[w.id].maxPoints;
+                    roundScore += pts;
+                    correctWordsCount++;
+                    groups[gameState.currentTurnGroupIndex].correctAnswers++;
+                }
+            });
+
+            // Bonus jika semua betul
+            let isPerfect = correctWordsCount === layout.words.length;
+            if(isPerfect) {
+                roundScore += 5; // Bonus
+            }
+
+            // Kemaskini markah
+            let currentGroup = groups[gameState.currentTurnGroupIndex];
+            currentGroup.score += roundScore;
+
+            // Maklumbalas
+            let msg = `Kumpulan mendapat ${roundScore} mata dalam pusingan ini.`;
+            if(isPerfect) msg += " Tambahan 5 mata bonus semua betul!";
+            
+            showModal(isPerfect ? "Hebat!" : "Syabas!", msg, isPerfect ? "🌟" : "👍", () => {
+                nextTurn();
+            });
+        }
+
+        function nextTurn() {
+            // Gerakkan giliran kumpulan
+            gameState.currentTurnGroupIndex = (gameState.currentTurnGroupIndex + 1) % groups.length;
+            
+            // Pergi pusingan seterusnya
+            gameState.currentRoundIndex++;
+            
+            if (gameState.currentRoundIndex >= gameState.rounds.length) {
+                endGame();
+            } else {
+                startRound();
+            }
+        }
+
+        function endGame() {
+            document.getElementById("screen-game").classList.add("hidden");
+            document.getElementById("header-status").classList.add("hidden");
+            document.getElementById("screen-leaderboard").classList.remove("hidden");
+
+            // Sort & Render Leaderboard
+            let sortedGroups = [...groups].sort((a,b) => {
+                if(b.score !== a.score) return b.score - a.score;
+                return b.correctAnswers - a.correctAnswers; // tie breaker
+            });
+
+            let tbody = document.getElementById("final-leaderboard-body");
+            tbody.innerHTML = "";
+
+            let totalWords = gameState.selectedQuestions.length;
+
+            sortedGroups.forEach((g, index) => {
+                let tr = document.createElement("tr");
+                let rankIcon = index === 0 ? "🥇" : index === 1 ? "🥈" : index === 2 ? "🥉" : (index + 1);
+                let accuracy = Math.round((g.correctAnswers / (totalWords / groups.length)) * 100); 
+                // accuracy estimation based on fair distribution assumption
+                
+                tr.innerHTML = `
+                    <td class="py-4 px-4 text-center text-xl font-bold">${rankIcon}</td>
+                    <td class="py-4 px-4 text-lg font-black text-slate-800">${g.name}</td>
+                    <td class="py-4 px-4 text-center text-slate-600">${g.correctAnswers}</td>
+                    <td class="py-4 px-4 text-center text-2xl font-black text-emerald-600">${g.score}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        // ---------------------------------------------------------
+        // 10. NAVIGASI SELEPAS PERMAINAN & MODAL
+        // ---------------------------------------------------------
+
+        function returnToHome() {
+            document.getElementById("screen-leaderboard").classList.add("hidden");
+            document.getElementById("screen-setup").classList.remove("hidden");
+            // Biarkan senarai kumpulan sedia ada, tapi reset alert
+            document.getElementById("setup-error").classList.add("hidden");
+        }
+
+        function playAgain() {
+            startGame();
+        }
+
+        // Modal Custom (Ganti alert asli)
+        let modalCallback = null;
+        function showModal(title, msg, icon, callback = null) {
+            document.getElementById("feedback-title").innerText = title;
+            document.getElementById("feedback-message").innerText = msg;
+            document.getElementById("feedback-icon").innerText = icon;
+            document.getElementById("feedback-modal").classList.remove("hidden");
+            
+            // Animasi pop
+            setTimeout(() => {
+                document.getElementById("feedback-modal-content").classList.remove("scale-95");
+                document.getElementById("feedback-modal-content").classList.add("scale-100");
+            }, 10);
+
+            modalCallback = callback;
+        }
+
+        function closeFeedbackModal() {
+            document.getElementById("feedback-modal-content").classList.remove("scale-100");
+            document.getElementById("feedback-modal-content").classList.add("scale-95");
+            
+            setTimeout(() => {
+                document.getElementById("feedback-modal").classList.add("hidden");
+                if(modalCallback) {
+                    modalCallback();
+                    modalCallback = null;
+                }
+            }, 200);
+        }
+
+    </script>
+</body>
+</html>
